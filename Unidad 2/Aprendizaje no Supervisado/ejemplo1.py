@@ -34,6 +34,20 @@ kmmeans.cluster_centers_
 pred = kmmeans.fit_predict(X)
 pred
 
+from sklearn.metrics import confusion_matrix
+conf_matrix= confusion_matrix(y,pred)
+
+fig , ax = plt.subplots(figsize=( 7.5,7.5))
+ax.matshow(conf_matrix,cmap=plt.cm.Blues,alpha=0.3)
+for i in range(conf_matrix.shape[0]):
+    for j in range(conf_matrix.shape[1]):
+        ax.text(x=j,y=i,s=conf_matrix[i,j],va='center',ha='center',size='xx-large')
+plt.xlabel('Predicted ', fontsize=18)
+plt.ylabel('Actual', fontsize=18)
+plt.title('Confusion Matrix', fontsize=18)
+plt.show()
+
+
 plt.figure(figsize=(12,5))
 plt.subplot(1,2,1)
 plt.scatter(X[:,0],X[:,1],c=pred,cmap=cm.Accent)
@@ -53,3 +67,4 @@ for center in kmmeans.cluster_centers_:
 plt.xlabel("sepal length (cm)")
 plt.ylabel("sepal width (cm)")
 plt.show()
+
