@@ -33,3 +33,23 @@ kmmeans.cluster_centers_
 
 pred = kmmeans.fit_predict(X)
 pred
+
+plt.figure(figsize=(12,5))
+plt.subplot(1,2,1)
+plt.scatter(X[:,0],X[:,1],c=pred,cmap=cm.Accent)
+plt.grid(True)
+for center in kmmeans.cluster_centers_:
+    center=center[:2]
+    plt.scatter(center[0],center[1], marker='^', c='red')
+plt.xlabel("petal length (cm)")
+plt.ylabel("petal width (cm)")
+
+plt.subplot(1,2,2)
+plt.scatter(X[:,2],X[:,3],c=pred,cmap=cm.Accent)
+plt.grid(True)
+for center in kmmeans.cluster_centers_:
+    center=center[2:4]
+    plt.scatter(center[0],center[1], marker='^', c='red')
+plt.xlabel("sepal length (cm)")
+plt.ylabel("sepal width (cm)")
+plt.show()
