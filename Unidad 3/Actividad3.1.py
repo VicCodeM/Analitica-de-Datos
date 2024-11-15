@@ -46,7 +46,6 @@ plt.xticks(rotation=45)
 plt.show()
 
 # Histograma: Distribución de la edad media de las casas
-# Histograma: Distribución de la edad media de las casas
 plt.figure(figsize=(10, 6))
 plt.hist(housing_subset['HouseAge'], bins=np.arange(0, 55, 5), color='green', alpha=0.7, align='left', rwidth=0.8)
 plt.title('Distribución de la Edad Media de las Casas (Primeras 100 Casas)')
