@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from dash import Dash, dcc, html, Input, Output
+from dash1 import Dash, dcc, html, Input, Output
 import dash_bootstrap_components as dbc
 import plotly.express as px
 from sklearn.preprocessing import StandardScaler

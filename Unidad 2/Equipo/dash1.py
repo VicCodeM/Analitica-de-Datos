@@ -1,11 +1,11 @@
 import pandas as pd
 import numpy as np
-from dash1 import Dash, dcc, html, Input, Output
+from dash import Dash, dcc, html, Input, Output
 import dash_bootstrap_components as dbc
 import plotly.express as px
 from sklearn.preprocessing import StandardScaler
 from sklearn.neural_network import MLPRegressor
-from sklearn.model_selection import train_test_split, learning_curve
+from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, r2_score
 
 # Configurar tema de Bootstrap
@@ -35,7 +35,8 @@ y_pred_nn = mlp.predict(X_test)
 rmse_nn = mean_squared_error(y_test, y_pred_nn, squared=False)
 r2_nn = r2_score(y_test, y_pred_nn)
 
-# Calcular la curva de aprendizaje
+# Crear datos para curva de aprendizaje
+from sklearn.model_selection import learning_curve
 train_sizes, train_scores, test_scores = learning_curve(
     mlp, X_train, y_train, cv=5, scoring='neg_mean_squared_error', train_sizes=np.linspace(0.1, 1.0, 10)
 )
@@ -43,9 +44,9 @@ train_scores_mean = -train_scores.mean(axis=1)
 test_scores_mean = -test_scores.mean(axis=1)
 
 # Layout del dashboard
-app.layout = dbc.Container([  
+app.layout = dbc.Container([
     html.H1("Dashboard Interactivo: Predicción de Ventas", className="text-center my-4"),
-
+    
     # Métricas del modelo
     dbc.Row([
         dbc.Col([
@@ -65,12 +66,12 @@ app.layout = dbc.Container([
             ], className="shadow-sm"),
         ], width=6)
     ], className="my-4"),
-
+    
     # Gráficos interactivos
     dbc.Row([
         # Gráfico de dispersión
         dbc.Col([
-            html.H5("Impacto del Precio Unitario en las Ventas Totales"),
+            html.H5("Relación entre variables"),
             dcc.Dropdown(
                 id='x-axis',
                 options=[{'label': col, 'value': col} for col in features + ['Total']],
@@ -87,10 +88,10 @@ app.layout = dbc.Container([
             ),
             dcc.Graph(id='scatter-features')
         ], width=6),
-
+        
         # Histograma
         dbc.Col([
-            html.H5("Distribución del Precio Unitario o Total de Ventas"),
+            html.H5("Distribución de datos"),
             dcc.Dropdown(
                 id='hist-variable',
                 options=[{'label': col, 'value': col} for col in features + ['Total']],
@@ -101,11 +102,11 @@ app.layout = dbc.Container([
             dcc.Graph(id='histogram')
         ], width=6),
     ], className="my-4"),
-
+    
     dbc.Row([
         # Gráfico de barras
         dbc.Col([
-            html.H5("Promedio de Ventas por Cantidad o Rating"),
+            html.H5("Total de ventas agrupado"),
             dcc.Dropdown(
                 id='bar-group',
                 options=[{'label': col, 'value': col} for col in ['Quantity', 'Rating']],
@@ -115,14 +116,25 @@ app.layout = dbc.Container([
             ),
             dcc.Graph(id='bar-chart')
         ], width=6),
-
+        
         # Curva de aprendizaje
         dbc.Col([
-            html.H5("Curva de Aprendizaje del Modelo"),
-            dcc.Graph(id='learning-curve')
+            html.H5("Curva de aprendizaje"),
+            dcc.Graph(
+                id='learning-curve',
+                figure=px.line(
+                    x=train_sizes,
+                    y=[train_scores_mean, test_scores_mean],
+                    labels={'x': 'Tamaño del conjunto de entrenamiento', 'y': 'Error'},
+                    title="Curva de aprendizaje",
+                    color_discrete_sequence=['blue', 'red']
+                ).update_traces(name='Entrenamiento').add_scatter(
+                    x=train_sizes, y=test_scores_mean, mode='lines', name='Prueba', line=dict(color='red')
+                )
+            )
         ], width=6),
     ], className="my-4"),
-
+    
     # Predicción interactiva
     html.H5("Predicción interactiva"),
     dbc.Row([
@@ -145,6 +157,18 @@ app.layout = dbc.Container([
             html.Div(id='prediction-output', className="alert alert-info", style={'fontSize': '18px'})
         ], width=8),
     ], className="my-4"),
+    
+    # Explicación de gráficos
+    html.Hr(),
+    html.Div([
+        html.H4("Explicaciones de los Gráficos"),
+        html.Ul([
+            html.Li("Relación entre variables: Permite visualizar cómo se relacionan dos variables, como el precio unitario y el total de ventas."),
+            html.Li("Distribución de datos: Muestra la frecuencia de valores en una variable específica, útil para detectar patrones."),
+            html.Li("Total de ventas agrupado: Presenta el total de ventas agrupadas por una característica, como la cantidad o la calificación."),
+            html.Li("Curva de aprendizaje: Analiza cómo el error del modelo varía con diferentes tamaños de datos de entrenamiento."),
+        ])
+    ], className="my-4")
 ], fluid=True)
 
 # Callbacks para actualizar gráficos y predicciones
@@ -154,25 +178,19 @@ app.layout = dbc.Container([
     Input('y-axis', 'value')
 )
 def update_scatter(x_col, y_col):
-    return px.scatter(
-        data, x=x_col, y=y_col, 
-        color='Rating',  # Usar 'Rating' para colorear los puntos
-        title=f"{x_col} vs {y_col} con colores basados en Rating",
-        labels={'x': x_col, 'y': y_col},
-        template='plotly_white'
-    )
+    fig = px.scatter(data, x=x_col, y=y_col, title=f"{x_col} vs {y_col}")
+    fig.update_layout(xaxis_title=x_col, yaxis_title=y_col)
+    fig.update_traces(marker=dict(size=10, opacity=0.7))
+    return fig
 
 @app.callback(
     Output('histogram', 'figure'),
     Input('hist-variable', 'value')
 )
 def update_histogram(variable):
-    fig = px.histogram(
-        data, x=variable, nbins=30, color_discrete_sequence=['#636EFA'],
-        title=f"Distribución de {variable} para una mejor toma de decisiones",
-        template='plotly_white'
-    )
-    fig.update_traces(marker_line_width=1, marker_line_color='black')
+    fig = px.histogram(data, x=variable, nbins=30, title=f"Distribución de {variable}")
+    fig.update_layout(xaxis_title=variable, yaxis_title="Frecuencia")
+    fig.update_traces(marker=dict(color='blue', opacity=0.7))
     return fig
 
 @app.callback(
@@ -180,51 +198,26 @@ def update_histogram(variable):
     Input('bar-group', 'value')
 )
 def update_bar_chart(group_by):
-    grouped_data = data.groupby(group_by)['Total'].mean().reset_index()
-    fig = px.bar(
-        grouped_data, x=group_by, y='Total',
-        color='Total', color_continuous_scale='Viridis',
-        title=f"Promedio de ventas por {group_by} (toma de decisiones)",
-        template='plotly_white'
-    )
-    fig.update_layout(coloraxis_colorbar=dict(title="Promedio Ventas"))
-    return fig
-
-@app.callback(
-    Output('learning-curve', 'figure'),
-    Input('predict-btn', 'n_clicks')
-)
-def update_learning_curve(n_clicks):
-    fig = px.line(
-        x=train_sizes, y=[train_scores_mean, test_scores_mean],
-        title="Curva de Aprendizaje (Evaluación del modelo)",
-        labels={'x': 'Número de muestras de entrenamiento', 'y': 'Error cuadrático medio'},
-        template='plotly_white'
-    )
-    fig.update_layout(
-        legend=dict(title="Curvas"),
-        legend_traceorder="normal",
-        annotations=[dict(
-            x=0.8, y=0.5, xref="paper", yref="paper",
-            text="Modelo estabilizado, ajuste de parámetros necesario",
-            showarrow=True, arrowhead=2, arrowsize=1
-        )]
-    )
+    grouped_data = data.groupby(group_by)['Total'].sum().reset_index()
+    grouped_data = grouped_data.sort_values(by='Total', ascending=False)
+    fig = px.bar(grouped_data, x=group_by, y='Total', title=f"Total de ventas por {group_by}")
+    fig.update_layout(xaxis_title=group_by, yaxis_title="Total de Ventas")
+    fig.update_traces(marker=dict(color='green'))
     return fig
 
 @app.callback(
     Output('prediction-output', 'children'),
     Input('unit-price', 'value'),
     Input('quantity', 'value'),
-    Input('rating', 'value')
+    Input('rating', 'value'),
+    Input('predict-btn', 'n_clicks')
 )
-def update_prediction(unit_price, quantity, rating):
-    # Realizar la predicción utilizando el modelo MLP
-    input_data = scaler.transform([[unit_price, quantity, rating]])  # Escalar los valores de entrada
-    prediction = mlp.predict(input_data)[0]  # Predecir el valor de ventas totales
-    
-    # Mostrar la predicción
-    return f"El total estimado de ventas es: ${prediction:.2f}"
+def update_prediction(unit_price, quantity, rating, n_clicks):
+    nuevos_datos = np.array([[unit_price, quantity, rating]])
+    nuevos_datos = scaler.transform(nuevos_datos)
+    prediccion_nn = mlp.predict(nuevos_datos)
+    return f"Predicción del total de ventas: {prediccion_nn[0]:.2f}"
 
-if __name__ == "__main__":
+# Ejecutar servidor
+if __name__ == '__main__':
     app.run_server(debug=True)
